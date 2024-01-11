@@ -1,7 +1,13 @@
 ﻿using BepInEx;
+using BepInEx.Logging;
+using Devdog.General.UI;
+using Invector;
 using System;
 using System.Collections;
+using System.Linq;
+using UIWindowPageFramework;
 using UnityEngine;
+using UnityEngine.UI;
 using Pages = UIWindowPageFramework.Framework;
 
 namespace UpgradeFramework
@@ -9,7 +15,7 @@ namespace UpgradeFramework
     internal class PluginInfo
     {
         public const string GUID = "tairasoul.upgradeframework";
-        public const string Name = "UpgradeFramework.Indev";
+        public const string Name = "UpgradeFramework";
         public const string Version = "1.0.0";
     }
     [BepInPlugin(PluginInfo.GUID, PluginInfo.Name, PluginInfo.Version)]
@@ -17,31 +23,156 @@ namespace UpgradeFramework
     {
         internal static GameObject RegisteredWindow = null;
         internal static GameObject IngameWindow = null;
+        internal static GameObject ObjectStorage = null;
+        internal static ManualLogSource Log;
         void Awake()
         {
+            Log = Logger;
             Logger.LogInfo($"Plugin {PluginInfo.GUID} ({PluginInfo.Name}) version {PluginInfo.Version} loaded.");
         }
 
         void Start() => StartCoroutine(Init());
-        void OnDestroy() => Logger.LogError("UpgradeFramework.Plugin should not be getting destroyed! Is hideManagerObject disabled?");
+        void OnDestroy() 
+        {
+            Logger.LogError("UpgradeFramework.Plugin should not be getting destroyed! Is hideManagerObject disabled?");
+            Logger.LogWarning("UpgradeFramework is initializing with backup method.");
+            GameObject obj = new GameObject("TempMonoBehaviour");
+            DontDestroyOnLoad(obj);
+            obj.AddComponent<TempBehaviour>().Init();
+        }
+
+        T Find<T>(Func<T, bool> predicate)
+        {
+            foreach (T find in GameObject.FindObjectsOfTypeAll(typeof(T)).Cast<T>())
+            {
+                if (predicate(find)) return find;
+            }
+            return default;
+        }
+
+        void SetupHeader(GameObject RegisteredWindow)
+        {
+            Logger.LogInfo($"Setting up header for {RegisteredWindow}");
+            try
+            {
+                GameObject Header = RegisteredWindow.Find("Header"); 
+                CanvasRenderer rend = Header.GetComponent<CanvasRenderer>() ?? Header.AddComponent<CanvasRenderer>();
+                rend.materialCount = 1;
+                Material origin = Find((Material m) =>
+                {
+                    return m.name == "Default UI Material";
+                });
+                Material newM = new Material(origin)
+                {
+                    name = "Modified UI Material",
+                    renderQueue = origin.renderQueue + 1
+                };
+                rend.SetMaterial(newM, 0);
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex);
+            }
+        }
+
+        void CreateCategoryButtonsObj(GameObject RegisteredWindow)
+        {
+            Logger.LogInfo($"Creating category buttons for {RegisteredWindow}");
+            GameObject CategoryButtons = RegisteredWindow.AddObject("CategoryButtons");
+            RectTransform ButtonsRect = CategoryButtons.AddComponent<RectTransform>();
+            ButtonsRect.sizeDelta = new Vector2(100, 100);
+            ButtonsRect.anchoredPosition = new Vector2(0, 100);
+            GameObject ScrollbarVertical = CategoryButtons.AddObject("Scrollbar Vertical");
+            RectTransform VerticalRect = ScrollbarVertical.AddComponent<RectTransform>();
+            ScrollRect rect = CategoryButtons.AddComponent<ScrollRect>();
+            Scrollbar vertical = ScrollbarVertical.AddComponent<Scrollbar>();
+            GameObject SlidingArea = ScrollbarVertical.AddObject("Sliding Area");
+            RectTransform SlidingRect = SlidingArea.AddComponent<RectTransform>();
+            GameObject Handle = SlidingArea.AddObject("Handle");
+            RectTransform HandleRect = Handle.AddComponent<RectTransform>();
+            Image HandleImage = Handle.AddComponent<Image>();
+            HandleImage.color = Color.clear;
+            vertical.direction = Scrollbar.Direction.TopToBottom;
+            vertical.handleRect = HandleRect;
+            vertical.image = HandleImage;
+            GameObject Viewport = CategoryButtons.AddObject("Viewport");
+            RectTransform ViewportRect = Viewport.AddComponent<RectTransform>();
+            ViewportRect.anchoredPosition = new Vector2(-580.1204f, -183.5188f);
+            ViewportRect.sizeDelta = new Vector2(300, 700);
+            Viewport.AddComponent<Animator>();
+            Viewport.AddComponent<CanvasGroup>();
+            Viewport.AddComponent<Mask>();
+            Viewport.AddComponent<AnimatorHelper>();
+            Viewport.AddComponent<Image>().color = new Color(1, 1, 1, 0.0025f);
+            GameObject Content = Viewport.AddObject("Content");
+            RectTransform ContentRect = Content.AddComponent<RectTransform>();
+            ContentRect.anchoredPosition = new Vector2(-84.7709f, -0.0009f);
+            ContentRect.sizeDelta = new Vector2(100, 700);
+            VerticalLayoutGroup group = Content.AddComponent<VerticalLayoutGroup>();
+            group.childForceExpandHeight = false;
+            group.childForceExpandWidth = false;
+            group.childAlignment = TextAnchor.UpperLeft;
+            rect.content = ContentRect;
+            rect.viewport = ViewportRect;
+            rect.horizontal = false;
+            rect.verticalScrollbar = vertical;
+            rect.scrollSensitivity = 25;
+        }
+
+
 
         IEnumerator Init()
         {
+            ObjectStorage = new GameObject("UpgradeFramework.ObjectStorage");
+            DontDestroyOnLoad(ObjectStorage);
             while (!Pages.Ready)
             {
                 yield return null;
             }
-            RegisteredWindow = Pages.CreateWindow("Upgrades");
+            RegisteredWindow = Pages.CreateWindow("UPGRADES");
+            CreateCategoryButtonsObj(RegisteredWindow);
+            SetupHeader(RegisteredWindow);
+            GameObject CategoryStorage = RegisteredWindow.AddObject("Categories");
+            CategoryStorage.AddComponent<RectTransform>();
             Pages.RegisterWindow(RegisteredWindow, (GameObject window) =>
             {
+                SetupHeader(window);
                 IngameWindow = window;
             });
+            void Upgraded(int level)
+            {
+                Logger.LogInfo(level);
+            }
+            Upgrade baseUpgrade = new Upgrade("Health", "baseupgrade.health", "Armor", "Amount of health you have.", Upgraded, 3, 6, 100);
+            Framework.AddUpgrade(baseUpgrade);
         }
 
         internal static void RunOnBoth(Action<GameObject> action)
         {
             action.Invoke(RegisteredWindow);
             action.Invoke(IngameWindow);
+        }
+    }
+
+    class TempBehaviour : MonoBehaviour
+    {
+        public  void Init()
+        {
+            StartCoroutine(InitBackup());
+        }
+
+        IEnumerator InitBackup()
+        {
+            while (!Pages.Ready)
+            {
+                yield return null;
+            }
+            Plugin.RegisteredWindow = Pages.CreateWindow("UPGRADES");
+            Pages.RegisterWindow(Plugin.RegisteredWindow, (GameObject window) =>
+            {
+                Plugin.IngameWindow = window;
+            });
+            Destroy(gameObject);
         }
     }
 }
