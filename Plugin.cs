@@ -1,11 +1,9 @@
 ﻿using BepInEx;
 using BepInEx.Logging;
 using Devdog.General.UI;
-using Invector;
 using System;
 using System.Collections;
 using System.Linq;
-using System.Runtime.CompilerServices;
 using UIWindowPageFramework;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -18,7 +16,7 @@ namespace UpgradeFramework
     {
         public const string GUID = "tairasoul.upgradeframework";
         public const string Name = "UpgradeFramework";
-        public const string Version = "1.0.0";
+        public const string Version = "1.0.1";
     }
     [BepInPlugin(PluginInfo.GUID, PluginInfo.Name, PluginInfo.Version)]
     internal class Plugin : BaseUnityPlugin

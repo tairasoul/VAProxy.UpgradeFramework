@@ -17,8 +17,15 @@ namespace UpgradeFramework
         
         public static void AddUpgrade(Upgrade upgrade)
         {
-            CheckCategory(upgrade);
-            RegisteredUpgrades = RegisteredUpgrades.Append(upgrade).ToArray();
+            try
+            {
+                CheckCategory(upgrade);
+                RegisteredUpgrades = RegisteredUpgrades.Append(upgrade).ToArray();
+            }
+            catch (Exception ex)
+            {
+                Plugin.Log.LogError(ex);
+            }
         }
 
         /// <summary>
@@ -299,7 +306,7 @@ namespace UpgradeFramework
             {
                 Text priceText = UpgradeObject.Find("Info/UpgradePrice").GetComponent<Text>();
                 Text downgradeText = UpgradeObject.Find("Info/DowngradeRegain").GetComponent<Text>();
-                int[] prices = Upgraded.Invoke(CurrentLevel++, Price);
+                int[] prices = Upgraded.Invoke(++CurrentLevel, Price);
                 UpgradeObject.Find("Downgrade/DowngradeButton").GetComponent<Text>().text = "Downgrade";
                 try
                 {
@@ -337,7 +344,7 @@ namespace UpgradeFramework
             {
                 Text priceText = UpgradeObject.Find("Info/UpgradePrice").GetComponent<Text>();
                 Text downgradeText = UpgradeObject.Find("Info/DowngradeRegain").GetComponent<Text>();
-                int[] prices = Downgraded.Invoke(CurrentLevel--, Price);
+                int[] prices = Downgraded.Invoke(--CurrentLevel, Price);
                 UpgradeObject.Find("Upgrade/UpgradeButton").GetComponent<Text>().text = "Upgrade";
                 try
                 {
