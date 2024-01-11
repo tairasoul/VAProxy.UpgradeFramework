@@ -15,12 +15,14 @@ namespace UpgradeFramework
         
         public static void AddUpgrade(Upgrade upgrade)
         {
+            CheckCategory(upgrade);
             RegisteredUpgrades = RegisteredUpgrades.Append(upgrade).ToArray();
         }
 
         public static void AddUpgrade(string Name, string Identifier, string Category, string Description, Action<int> Upgraded, int DefaultLevel, int MaxLevel, int Price)
         {
             Upgrade upgrade = new Upgrade(Name, Identifier, Category, Description, Upgraded, DefaultLevel, MaxLevel, Price);
+            CheckCategory(upgrade);
             RegisteredUpgrades = RegisteredUpgrades.Append(upgrade).ToArray();
         }
 
@@ -41,14 +43,97 @@ namespace UpgradeFramework
 
         internal static void CheckCategory(Upgrade toCheck)
         {
+            Plugin.Log.LogInfo(toCheck);
             foreach (Category category in Categories)
             {
                 if (category.Name == toCheck.Category)
+                {
+                    UpgradeAdded(toCheck);
                     return;
+                }
             }
-            GameObject CategoryButton = ComponentUtils.CreateButton(toCheck.Category, $"tairasoul.upgradeframework.category.{toCheck.Category}.button");
-            Category toAdd = new Category(toCheck.Category, CategoryButton.GetComponent<Button>());
+            GameObject CategoryButton = ComponentUtils.CreateButton(toCheck.Category, $"tairasoul.upgradeframework.button.{toCheck.Category}");
+            Text ButtonText = CategoryButton.Find("ItemName").GetComponent<Text>();
+            ButtonText.font = ComponentUtils.GetFont("Orbitron-Regular");
+            GameObject Category = UpgradeUtils.CreateCategory(toCheck.Category);
+            LayoutElement elem = CategoryButton.GetComponent<LayoutElement>() ?? CategoryButton.AddComponent<LayoutElement>();
+            elem.minHeight = 50;
+            elem.minWidth = 300;
+            CategoryButton.SetParent(Plugin.ObjectStorage, true);
+            Category.SetParent(Plugin.ObjectStorage, true);
+            Category toAdd = new Category(toCheck.Category, CategoryButton.GetComponent<Button>(), Category);
             Categories = Categories.Append(toAdd).ToArray();
+            UpgradeAdded(toCheck);
+            CategoryAdded(toAdd);
+        }
+
+        internal static void UpgradeAdded(Upgrade upgrade)
+        {
+            if (Plugin.RegisteredWindow != null)
+            {
+                Category category = Categories.Find((Category cat) =>
+                {
+                    return cat.Name == upgrade.Category;
+                });
+                try
+                {
+                    GameObject CategoryObj = category.CategoryObject;
+                    Plugin.Log.LogInfo(CategoryObj);
+                    GameObject UpgradeObject = UpgradeUtils.CreateUpgrade(upgrade);
+                    Plugin.Log.LogInfo(UpgradeObject);
+                    UpgradeObject.SetParent(CategoryObj.Find("Viewport/Content"), false);
+                    Plugin.Log.LogInfo("Creation for RegisteredWindow done.");
+                }
+                catch (Exception ex)
+                {
+                    Plugin.Log.LogError(ex);
+                }
+            }
+            if (Plugin.IngameWindow != null)
+            {
+                Category category = Categories.Find((Category cat) =>
+                {
+                    return cat.Name == upgrade.Category;
+                });
+                try
+                {
+                    Plugin.Log.LogInfo($"Categories/tairasoul.upgradeframework.category.{category.Name}");
+                    GameObject CategoryObj = Plugin.IngameWindow.Find($"Categories/tairasoul.upgradeframework.category.{category.Name}");
+                    Plugin.Log.LogInfo(CategoryObj);
+                    GameObject UpgradeObject = UpgradeUtils.CreateUpgrade(upgrade);
+                    Plugin.Log.LogInfo(UpgradeObject);
+                    UpgradeObject.SetParent(CategoryObj.Find("Viewport/Content"), false);
+                    Plugin.Log.LogInfo("Creation for IngameWindow done.");
+                }
+                catch (Exception ex)
+                {
+                    Plugin.Log.LogError(ex);
+                }
+            }
+        }
+
+        internal static void CategoryAdded(Category category)
+        {
+            Plugin.RunOnBoth((GameObject window) =>
+            {
+                if (window != null)
+                {
+                    try
+                    {
+                        GameObject button = category.ButtonObject.Instantiate();
+                        GameObject categoryObj = category.CategoryObject.Instantiate();
+                        categoryObj.SetActive(false);
+                        button.name = button.name.Replace("(Clone)", "");
+                        categoryObj.name = categoryObj.name.Replace("(Clone)", "");
+                        button.SetParent(window.Find("CategoryButtons/Viewport/Content"), false);
+                        categoryObj.SetParent(window.Find("Categories"), true);
+                    }
+                    catch (Exception ex)
+                    {
+                        Plugin.Log.LogError(ex);
+                    }
+                }
+            });
         }
     }
 
@@ -59,7 +144,7 @@ namespace UpgradeFramework
         public string Category;
         public string Description;
         private readonly Action<int> Upgraded;
-        private int CurrentLevel;
+        public int CurrentLevel;
         public int MaxLevel;
         public int Price;
 
@@ -82,29 +167,26 @@ namespace UpgradeFramework
                 Upgraded.Invoke(CurrentLevel++);
             }
         }
+
+        public override string ToString()
+        {
+            return $"{Name} {Identifier} {Category} (UpgradeFramework.Upgrade)";
+        }
     }
 
     internal class Category
     {
         public string Name;
         internal Button button;
-        internal GameObject SubObjects;
+        internal GameObject CategoryObject;
+        internal GameObject ButtonObject;
 
-        public Category(string Name, Button button, GameObject SubObjects)
+        public Category(string Name, Button button, GameObject CategoryObject)
         {
             this.Name = Name;
             this.button = button;
-            this.SubObjects = SubObjects;
-        }
-
-        public void AddObject(GameObject obj)
-        {
-            obj.transform.SetParent(SubObjects.transform);
-        }
-
-        public void RemoveObject(GameObject obj)
-        {
-            obj.transform.SetParent(null);
+            ButtonObject = button.gameObject;
+            this.CategoryObject = CategoryObject;
         }
     }
 }
