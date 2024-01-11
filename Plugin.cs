@@ -21,6 +21,7 @@ namespace UpgradeFramework
     [BepInPlugin(PluginInfo.GUID, PluginInfo.Name, PluginInfo.Version)]
     internal class Plugin : BaseUnityPlugin
     {
+        internal static Plugin Instance;
         internal static GameObject RegisteredWindow = null;
         internal static GameObject IngameWindow = null;
         internal static GameObject ObjectStorage = null;
@@ -29,6 +30,7 @@ namespace UpgradeFramework
         internal static event Action<GameObject> UpgradeCallback;
         void Awake()
         {
+            Instance = this;
             Log = Logger;
             Logger.LogInfo($"Plugin {PluginInfo.GUID} ({PluginInfo.Name}) version {PluginInfo.Version} loaded.");
         }
@@ -121,9 +123,7 @@ namespace UpgradeFramework
             rect.scrollSensitivity = 25;
         }
 
-
-
-        IEnumerator Init()
+        internal IEnumerator Init()
         {
             ObjectStorage = new GameObject("UpgradeFramework.ObjectStorage");
             DontDestroyOnLoad(ObjectStorage);
@@ -170,33 +170,13 @@ namespace UpgradeFramework
                 Log.LogError(ex);
             }
         }
-
-        internal static void RunOnBoth(Action<GameObject> action)
-        {
-            action.Invoke(RegisteredWindow);
-            action.Invoke(IngameWindow);
-        }
     }
 
     class TempBehaviour : MonoBehaviour
     {
-        public  void Init()
+        public void Init()
         {
-            StartCoroutine(InitBackup());
-        }
-
-        IEnumerator InitBackup()
-        {
-            while (!Pages.Ready)
-            {
-                yield return null;
-            }
-            Plugin.RegisteredWindow = Pages.CreateWindow("UPGRADES");
-            Pages.RegisterWindow(Plugin.RegisteredWindow, (GameObject window) =>
-            {
-                Plugin.IngameWindow = window;
-            });
-            Destroy(gameObject);
+            StartCoroutine(Plugin.Instance.Init());
         }
     }
 }
