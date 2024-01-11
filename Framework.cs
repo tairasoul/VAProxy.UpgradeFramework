@@ -10,6 +10,7 @@ namespace UpgradeFramework
 {
     public class Framework
     {
+        public static bool Ready = false;
         private static Upgrade[] RegisteredUpgrades = Array.Empty<Upgrade>();
         private static Category[] Categories = Array.Empty<Category>();
         internal static Text HeaderText = null;

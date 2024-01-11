@@ -165,6 +165,7 @@ namespace UpgradeFramework
                     Log.LogInfo("Invoking UpgradeCallback");
                     UpgradeCallback.Invoke(window);
                 });
+                Framework.Ready = true;
             }
             catch (Exception ex)
             {
