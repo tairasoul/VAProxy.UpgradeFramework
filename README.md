@@ -2,4 +2,8 @@
 
 A scrap-based framework for upgrades.
 
-Not functional as of now.
+## Todo
+
+write docs
+
+allow removing upgrades

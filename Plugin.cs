@@ -5,8 +5,10 @@ using Invector;
 using System;
 using System.Collections;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using UIWindowPageFramework;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 using Pages = UIWindowPageFramework.Framework;
 
@@ -25,6 +27,8 @@ namespace UpgradeFramework
         internal static GameObject IngameWindow = null;
         internal static GameObject ObjectStorage = null;
         internal static ManualLogSource Log;
+        internal static event Action<GameObject> CategoryCallback;
+        internal static event Action<GameObject> UpgradeCallback;
         void Awake()
         {
             Log = Logger;
@@ -129,22 +133,57 @@ namespace UpgradeFramework
             {
                 yield return null;
             }
-            RegisteredWindow = Pages.CreateWindow("UPGRADES");
-            CreateCategoryButtonsObj(RegisteredWindow);
-            SetupHeader(RegisteredWindow);
-            GameObject CategoryStorage = RegisteredWindow.AddObject("Categories");
-            CategoryStorage.AddComponent<RectTransform>();
-            Pages.RegisterWindow(RegisteredWindow, (GameObject window) =>
+            while (SceneManager.GetActiveScene().name != "Menu")
             {
-                SetupHeader(window);
-                IngameWindow = window;
-            });
-            void Upgraded(int level)
-            {
-                Logger.LogInfo(level);
+                yield return null;
             }
-            Upgrade baseUpgrade = new Upgrade("Health", "baseupgrade.health", "Armor", "Amount of health you have.", Upgraded, 3, 6, 100);
-            Framework.AddUpgrade(baseUpgrade);
+            try
+            {
+                RegisteredWindow = Pages.CreateWindow("UPGRADES");
+                CreateCategoryButtonsObj(RegisteredWindow);
+                SetupHeader(RegisteredWindow);
+                GameObject CategoryStorage = RegisteredWindow.AddObject("Categories");
+                CategoryStorage.AddComponent<RectTransform>();
+                Pages.RegisterWindow(RegisteredWindow, (GameObject window) =>
+                {
+                    SetupHeader(window);
+                    IngameWindow = window;
+                    GameObject Header = window.Find("Header").AddObject("PageHeader");
+                    RectTransform Page = Header.AddComponent<RectTransform>();
+                    Text HeaderText = Header.AddComponent<Text>();
+                    HeaderText.alignment = TextAnchor.MiddleCenter;
+                    HeaderText.fontSize = 24;
+                    HeaderText.horizontalOverflow = HorizontalWrapMode.Overflow;
+                    HeaderText.font = ComponentUtils.GetFont("Orbitron-Bold");
+                    Page.anchoredPosition = new Vector2(42, 77);
+                    Page.sizeDelta = new Vector2(322, 42);
+                    Framework.HeaderText = HeaderText;
+                    Page.sizeDelta = new Vector2(322, 42);
+                    Page.anchoredPosition = new Vector2(755, 305);
+                    Log.LogInfo("Invoking CategoryCallback");
+                    CategoryCallback.Invoke(window);
+                    Log.LogInfo("Invoking UpgradeCallback");
+                    UpgradeCallback.Invoke(window);
+                });
+                int[] Upgraded(int level, int currentPrice)
+                {
+                    Log.LogInfo("Upgraded");
+                    Logger.LogInfo(level);
+                    Logger.LogInfo(currentPrice);
+                    return [currentPrice + 100, currentPrice];
+                }
+                int[] Downgraded(int level, int price)
+                {
+                    Log.LogInfo("Downgraded");
+                    return [price - 100, price - 200];
+                }
+                Upgrade baseUpgrade = new("Health", "baseupgrade.health", "Armor", "Amount of health you have.", Upgraded, Downgraded, 3, 3, 6, 100, 50);
+                Framework.AddUpgrade(baseUpgrade);
+            }
+            catch (Exception ex)
+            {
+                Log.LogError(ex);
+            }
         }
 
         internal static void RunOnBoth(Action<GameObject> action)
