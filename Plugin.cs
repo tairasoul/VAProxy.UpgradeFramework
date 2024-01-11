@@ -165,20 +165,6 @@ namespace UpgradeFramework
                     Log.LogInfo("Invoking UpgradeCallback");
                     UpgradeCallback.Invoke(window);
                 });
-                int[] Upgraded(int level, int currentPrice)
-                {
-                    Log.LogInfo("Upgraded");
-                    Logger.LogInfo(level);
-                    Logger.LogInfo(currentPrice);
-                    return [currentPrice + 100, currentPrice];
-                }
-                int[] Downgraded(int level, int price)
-                {
-                    Log.LogInfo("Downgraded");
-                    return [price - 100, price - 200];
-                }
-                Upgrade baseUpgrade = new("Health", "baseupgrade.health", "Armor", "Amount of health you have.", Upgraded, Downgraded, 3, 3, 6, 100, 50);
-                Framework.AddUpgrade(baseUpgrade);
             }
             catch (Exception ex)
             {
