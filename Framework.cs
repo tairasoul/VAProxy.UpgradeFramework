@@ -1,5 +1,5 @@
-﻿using FluffyUnderware.DevTools.Extensions;
-using System;
+﻿using System;
+using System.Collections;
 using System.Linq;
 using UIWindowPageFramework;
 using UnityEngine;
@@ -17,15 +17,7 @@ namespace UpgradeFramework
         
         public static void AddUpgrade(Upgrade upgrade)
         {
-            try
-            {
-                CheckCategory(upgrade);
-                RegisteredUpgrades = RegisteredUpgrades.Append(upgrade).ToArray();
-            }
-            catch (Exception ex)
-            {
-                Plugin.Log.LogError(ex);
-            }
+            SingletonBehaviour.instance.StartCoroutine(UpgradeCoroutine(upgrade));
         }
 
         /// <summary>
@@ -47,9 +39,18 @@ namespace UpgradeFramework
 
         public static void AddUpgrade(string Name, string Identifier, string Category, string Description, Func<int, int, int[]> Upgraded, Func<int, int, int[]> Downgraded, int MinLevel, int DefaultLevel, int MaxLevel, int Price, int Regain)
         {
-            Upgrade upgrade = new Upgrade(Name, Identifier, Category, Description, Upgraded, Downgraded, DefaultLevel, MinLevel, MaxLevel, Price, Regain);
+            Upgrade upgrade = new(Name, Identifier, Category, Description, Upgraded, Downgraded, DefaultLevel, MinLevel, MaxLevel, Price, Regain);
+            SingletonBehaviour.instance.StartCoroutine(UpgradeCoroutine(upgrade));
+        }
+
+        internal static IEnumerator UpgradeCoroutine(Upgrade upgrade)
+        {
+            while (!Ready)
+            {
+                yield return null;
+            }
             CheckCategory(upgrade);
-            RegisteredUpgrades = RegisteredUpgrades.Append(upgrade).ToArray();
+            RegisteredUpgrades = [.. RegisteredUpgrades, upgrade];
         }
 
         /*public static void RemoveUpgrade(Upgrade upgrade)
@@ -69,7 +70,6 @@ namespace UpgradeFramework
 
         internal static void CheckCategory(Upgrade toCheck)
         {
-            Plugin.Log.LogInfo(toCheck);
             foreach (Category category in Categories)
             {
                 if (category.Name == toCheck.Category)
@@ -91,8 +91,8 @@ namespace UpgradeFramework
                 elem.minWidth = 300;
                 CategoryButton.SetParent(Plugin.ObjectStorage, true);
                 Category.SetParent(Plugin.ObjectStorage, true);
-                Category toAdd = new Category(toCheck.Category, CategoryButton.GetComponent<Button>(), Category);
-                Categories = Categories.Append(toAdd).ToArray();
+                Category toAdd = new(toCheck.Category, CategoryButton.GetComponent<Button>(), Category);
+                Categories = [.. Categories, toAdd];
                 UpgradeAdded(toCheck);
                 CategoryAdded(toAdd);
             }
