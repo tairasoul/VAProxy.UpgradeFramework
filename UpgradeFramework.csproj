@@ -30,9 +30,9 @@
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
-	<PropertyGroup>
-		<LangVersion>12</LangVersion>
-	</PropertyGroup>
+  <PropertyGroup>
+    <LangVersion>12</LangVersion>
+  </PropertyGroup>
   <ItemGroup>
     <Reference Include="0Harmony">
       <HintPath>F:\SteamLibrary\steamapps\common\VA Proxy Demo\BepInEx\core\0Harmony.dll</HintPath>
@@ -384,6 +384,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Extensions\Array.cs" />
+    <Compile Include="SingletonBehaviour.cs" />
     <Compile Include="UpgradeUtils.cs" />
     <Compile Include="Framework.cs" />
     <Compile Include="Plugin.cs" />

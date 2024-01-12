@@ -16,7 +16,7 @@ namespace UpgradeFramework
     {
         public const string GUID = "tairasoul.upgradeframework";
         public const string Name = "UpgradeFramework";
-        public const string Version = "1.0.1";
+        public const string Version = "1.0.2";
     }
     [BepInPlugin(PluginInfo.GUID, PluginInfo.Name, PluginInfo.Version)]
     internal class Plugin : BaseUnityPlugin
@@ -148,16 +148,14 @@ namespace UpgradeFramework
                     IngameWindow = window;
                     GameObject Header = window.Find("Header").AddObject("PageHeader");
                     RectTransform Page = Header.AddComponent<RectTransform>();
-                    Text HeaderText = Header.AddComponent<Text>();
+                    Text HeaderText = Header.GetComponent<Text>() ?? Header.AddComponent<Text>();
                     HeaderText.alignment = TextAnchor.MiddleCenter;
                     HeaderText.fontSize = 24;
                     HeaderText.horizontalOverflow = HorizontalWrapMode.Overflow;
                     HeaderText.font = ComponentUtils.GetFont("Orbitron-Bold");
-                    Page.anchoredPosition = new Vector2(42, 77);
-                    Page.sizeDelta = new Vector2(322, 42);
                     Framework.HeaderText = HeaderText;
                     Page.sizeDelta = new Vector2(322, 42);
-                    Page.anchoredPosition = new Vector2(755, 305);
+                    Page.anchoredPosition = new Vector2(110, 77);
                     Log.LogInfo("Invoking CategoryCallback");
                     CategoryCallback.Invoke(window);
                     Log.LogInfo("Invoking UpgradeCallback");
